@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(offboard)
+project(PX4_offboard)
 #set(Service_Dir /home/tarmy/sdb1_work/catkin_px4/src/mavros/mavros_msgs/srv)
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   mavros
   mavros_extras
+  rosmsg_template
 )
 
 ## System dependencies are found with CMake's conventions
@@ -110,8 +111,8 @@ include(EnableCXX11)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES offboard
+  INCLUDE_DIRS include
+#  LIBRARIES PX4_offboard
   CATKIN_DEPENDS mavros mavros_extras roscpp std_msgs 
   DEPENDS Boost
 )
@@ -137,7 +138,7 @@ include_directories(
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
@@ -151,6 +152,7 @@ target_link_libraries(
       offboard_node
       ${catkin_LIBRARIES}
 )
+ add_dependencies(offboard_node rosmsg_template_gencpp ${catkin_EXPORTED_TARGETS})
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
