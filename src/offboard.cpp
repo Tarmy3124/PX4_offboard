@@ -52,6 +52,8 @@ int main(int argc, char **argv)
             ("mavros/set_mode"); // 创建一个客户端来降落
         ros::ServiceClient set_submode_loiter = nh.serviceClient<mavros_msgs::SetMode>
             ("mavros/set_mode"); // 创建一个客户端来loiter
+     ros::ServiceClient set_submode_takeoff = nh.serviceClient<mavros_msgs::SetMode>
+            ("mavros/set_mode"); // 创建一个客户端来takeoff
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
@@ -66,7 +68,7 @@ int main(int argc, char **argv)
     geometry_msgs::PoseStamped pose;
     pose.pose.position.x = 0;
     pose.pose.position.y = 0;
-    pose.pose.position.z = 2;
+    pose.pose.position.z = 20;
 
     //send a few setpoints before starting
     for(int i = 100; ros::ok() && i > 0; --i){
@@ -75,9 +77,11 @@ int main(int argc, char **argv)
         rate.sleep(); // 保证更新频率为20Hz，自动调整睡眠时间
     }
 
-    mavros_msgs::SetMode offb_set_mode,land_set_mode,loiter_set_mode;
+    mavros_msgs::SetMode offb_set_mode,land_set_mode,loiter_set_mode,takeoff_set_mode;
     land_set_mode.request.custom_mode = "AUTO.LAND";
-    loiter_set_mode.request.custom_mode = "AUTO.LOITER";
+    loiter_set_mode.request.custom_mode = "AUTO.RTL";
+    takeoff_set_mode.request.custom_mode = "AUTO.TAKEOFF";
+
     offb_set_mode.request.custom_mode = "OFFBOARD"; // 调用者请求
 
     mavros_msgs::CommandBool arm_cmd;
@@ -86,7 +90,56 @@ int main(int argc, char **argv)
     ros::Time last_request = ros::Time::now();
 
     while(ros::ok()){
-      
+          //cout<<"getkey"<<getkey<<endl;
+          //Q手动上锁
+           if(strncmp(getkey,"q",strlen("q"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+            arm_cmd.request.value = false;
+            if( arming_client.call(arm_cmd) &&
+                    arm_cmd.response.success){
+                    ROS_INFO("Vehicle locked");
+                
+                }
+          }
+                     if(strncmp(getkey,"r",strlen("r"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+            arm_cmd.request.value = true;
+            if( arming_client.call(arm_cmd) &&
+                    arm_cmd.response.success){
+                    ROS_INFO("Vehicle armed");
+                
+                }
+          }
+                     //更改目标位置X+0.2m
+          if(strncmp(getkey,"d",strlen("d"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.x += 0.2;
+          }
+                     //更改目标位置X-0.2m
+          if(strncmp(getkey,"a",strlen("a"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.x -= 0.2;
+          }
+                               //更改目标位置Y+0.2m
+          if(strncmp(getkey,"w",strlen("w"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.y += 0.2;
+          }
+                     //更改目标位置Y-0.2m
+          if(strncmp(getkey,"s",strlen("s"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.y -= 0.2;
+          }
+           //更改目标位置+0.2m
+          if(strncmp(getkey,"u",strlen("u"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.z += 0.2;
+          }
+           //更改目标位置-0.2m
+          if(strncmp(getkey,"down",strlen("down"))==0){
+            strcpy(getkey , "nothing to do"); //for null
+           pose.pose.position.z -= 0.2;
+          }
           if(strncmp(getkey,"land",strlen("land"))==0){
             strcpy(getkey , "nothing to do"); //for null
              if( set_submode_client.call(land_set_mode) && land_set_mode.response.mode_sent){ // 被调用者响应
@@ -99,6 +152,12 @@ int main(int argc, char **argv)
                 ROS_INFO("loiter ....");
             }
          }
+                  if(strncmp(getkey,"takeoff", strlen("takeoff"))==0){ //loiter
+             strcpy(getkey , "nothing to do"); //for null
+             if( set_submode_takeoff.call(takeoff_set_mode) && takeoff_set_mode.response.mode_sent){ // 被调用者响应
+                ROS_INFO("takeoff ....");
+            }
+         }
      if(strncmp(getkey,"offboard", strlen("offboard"))==0){
         strcpy(getkey,"nothing to do");
         ROS_INFO("Offboard ready to takeoff");
@@ -106,15 +165,19 @@ int main(int argc, char **argv)
             (ros::Time::now() - last_request > ros::Duration(5.0))){
             if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent){ // 被调用者响应
                 ROS_INFO("Offboard enabled");
+               
             }
             last_request = ros::Time::now();
         } else {
             if( !current_state.armed &&
                 (ros::Time::now() - last_request > ros::Duration(5.0))){
+               arm_cmd.request.value = true;
                 if( arming_client.call(arm_cmd) &&
                     arm_cmd.response.success){
                     ROS_INFO("Vehicle armed");
+                
                 }
+    
                 last_request = ros::Time::now();
         }
       }
